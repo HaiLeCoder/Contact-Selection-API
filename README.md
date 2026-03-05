@@ -41,6 +41,13 @@ Dự án: `contact-selection-api` (Spring Boot + MySQL)
     ```bash
     # Chỉ định Java 21 nếu máy cài nhiều bản Java 
     JAVA_HOME=/path/to/java/21 mvn spring-boot:run -DskipTests 
+    hoặc 
+    JAVA_HOME=/path/to/java/21 mvn spring-boot:run (Automation test)
+    ```
+    # Chỉ định nếu máy chỉ cài Java 21
+    mvn spring-boot:run -DskipTests 
+    hoặc 
+    mvn spring-boot:run (Automation test)
     ```
 
 ---
