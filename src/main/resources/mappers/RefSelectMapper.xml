@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  RefSelectMapper.xml – MySQL version
+  Khác biệt so với PostgreSQL:
+    PostgreSQL: STRING_AGG(col, ' / ' ORDER BY x)
+    MySQL:      GROUP_CONCAT(col ORDER BY x SEPARATOR ' / ')
+-->
+<mapper namespace="com.example.contactselection.repository.RefSelectRepository">
+
+    <!-- ================================================================
+         SQL: getRgonInfList
+         Lấy danh sách khu vực để render checkbox (初期表示)
+         ================================================================ -->
+    <select id="getRgonInfList" resultType="com.example.contactselection.dto.out.RgonInfoDto">
+        SELECT
+            rgon_cd  AS rgonCd,
+            rgon_nm  AS rgonNm
+        FROM
+            rgon_m
+        WHERE
+            delete_flg   = '0'
+        AND rgon_use_typ = '1'
+        ORDER BY
+            disp_order ASC
+    </select>
+
+    <!-- ================================================================
+         SQL: countContacts
+         Đếm số kết quả trước khi hiển thị (business rule: 0/80)
+         ================================================================ -->
+    <select id="countContacts" resultType="int">
+        SELECT
+            COUNT(DISTINCT ref.ref_cd)
+        FROM
+            toiawase_m ref
+            LEFT JOIN todofuken_m pref
+                ON  pref.pref_cd    = ref.pref_cd
+                AND pref.delete_flg = '0'
+            LEFT JOIN url_m url
+                ON  url.ref_cd     = ref.ref_cd
+                AND url.delete_flg = '0'
+        WHERE
+            ref.delete_flg = '0'
+
+        <!-- 問合せ先名称 – prefix search -->
+        <if test="form.txtRefNm != null and form.txtRefNm != ''">
+            AND ref.ref_nm LIKE CONCAT(#{form.txtRefNm}, '%')
+        </if>
+
+        <!-- 問合せ先名称カナ – prefix search -->
+        <if test="form.txtRefKn != null and form.txtRefKn != ''">
+            AND ref.ref_kn LIKE CONCAT(#{form.txtRefKn}, '%')
+        </if>
+
+        <!-- 電話番号 – prefix search -->
+        <if test="form.telno != null and form.telno != ''">
+            AND ref.tel_no LIKE CONCAT(#{form.telno}, '%')
+        </if>
+
+        <!-- URLアドレス – partial search -->
+        <if test="form.urlSearch != null and form.urlSearch != ''">
+            AND url.url_adr LIKE CONCAT('%', #{form.urlSearch}, '%')
+        </if>
+
+        <!-- 地域コード – IN list -->
+        <if test="form.rgonCdList != null and form.rgonCdList.size() > 0">
+            AND pref.rgon_cd IN
+            <foreach collection="form.rgonCdList" item="rgonCd"
+                     open="(" separator="," close=")">
+                #{rgonCd}
+            </foreach>
+        </if>
+    </select>
+
+    <!-- ================================================================
+         SQL: searchContacts
+         Lấy data cho danh sách nơi liên hệ.
+         MySQL: dùng GROUP_CONCAT thay STRING_AGG (PostgreSQL)
+         ================================================================ -->
+    <select id="searchContacts" resultType="com.example.contactselection.dto.out.RefSelectItemDto">
+        SELECT
+            ref.ref_cd                                          AS refCd,
+            ref.ref_nm                                          AS refNm,
+            ref.ref_kn                                          AS refKn,
+            ref.tel_no                                          AS telno,
+            pref.pref_nm                                        AS prefecture,
+            rgon.rgon_nm                                        AS rgonNm,
+            /*
+             * MySQL: GROUP_CONCAT(col ORDER BY x SEPARATOR ' / ')
+             * Nếu chỉ 1 URL → trả URL đó; nhiều URL → nối bằng " / "
+             */
+            GROUP_CONCAT(url.url_adr ORDER BY url.disp_order ASC SEPARATOR ' / ')
+                                                                AS urlDisplay
+        FROM
+            toiawase_m ref
+            LEFT JOIN todofuken_m pref
+                ON  pref.pref_cd    = ref.pref_cd
+                AND pref.delete_flg = '0'
+            LEFT JOIN rgon_m rgon
+                ON  rgon.rgon_cd    = pref.rgon_cd
+                AND rgon.delete_flg = '0'
+            LEFT JOIN url_m url
+                ON  url.ref_cd      = ref.ref_cd
+                AND url.delete_flg  = '0'
+        WHERE
+            ref.delete_flg = '0'
+
+        <if test="form.txtRefNm != null and form.txtRefNm != ''">
+            AND ref.ref_nm LIKE CONCAT(#{form.txtRefNm}, '%')
+        </if>
+        <if test="form.txtRefKn != null and form.txtRefKn != ''">
+            AND ref.ref_kn LIKE CONCAT(#{form.txtRefKn}, '%')
+        </if>
+        <if test="form.telno != null and form.telno != ''">
+            AND ref.tel_no LIKE CONCAT(#{form.telno}, '%')
+        </if>
+        <if test="form.urlSearch != null and form.urlSearch != ''">
+            AND url.url_adr LIKE CONCAT('%', #{form.urlSearch}, '%')
+        </if>
+        <if test="form.rgonCdList != null and form.rgonCdList.size() > 0">
+            AND pref.rgon_cd IN
+            <foreach collection="form.rgonCdList" item="rgonCd"
+                     open="(" separator="," close=")">
+                #{rgonCd}
+            </foreach>
+        </if>
+
+        GROUP BY
+            ref.ref_cd,
+            ref.ref_nm,
+            ref.ref_kn,
+            ref.tel_no,
+            pref.pref_nm,
+            rgon.rgon_nm
+
+        ORDER BY
+            ref.ref_cd ASC
+
+    </select>
+
+</mapper>
