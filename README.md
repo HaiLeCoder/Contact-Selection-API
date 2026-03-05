@@ -45,6 +45,7 @@ Dự án: `contact-selection-api` (Spring Boot + MySQL)
     JAVA_HOME=/path/to/java/21 mvn spring-boot:run (Automation test)
     ```
     # Chỉ định nếu máy chỉ cài Java 21
+    ```
     mvn spring-boot:run -DskipTests 
     hoặc 
     mvn spring-boot:run (Automation test)
